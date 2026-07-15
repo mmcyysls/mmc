@@ -195,46 +195,51 @@
             
             resultDiv.innerHTML = '<div class="loading">⏳ 查询中...</div>';
             
+            // 使用 ipwhois.app 的免费API（无限制）
             const url = ipInput 
-                ? `https://ip-api.com/json/${ipInput}?lang=zh-CN`
-                : `https://ip-api.com/json/?lang=zh-CN`;
+                ? `https://ipwhois.app/json/${ipInput}`
+                : `https://ipwhois.app/json/`;
             
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
-                    if (data.status === 'success') {
-                        const mapUrl = `https://www.openstreetmap.org/?mlat=${data.lat}&mlon=${data.lon}&zoom=12`;
+                    if (data.success === true) {
+                        const mapUrl = `https://www.openstreetmap.org/?mlat=${data.latitude}&mlon=${data.longitude}&zoom=12`;
                         
                         resultDiv.innerHTML = `
                             <div class="success">✅ 查询成功</div>
                             <div class="result-group">
                                 <div class="result-item">
                                     <div class="result-label">IP地址</div>
-                                    <div class="result-value">${data.query}</div>
+                                    <div class="result-value">${data.ip}</div>
                                 </div>
                                 <div class="result-item">
                                     <div class="result-label">国家</div>
                                     <div class="result-value">${data.country}</div>
                                 </div>
                                 <div class="result-item">
-                                    <div class="result-label">区域</div>
-                                    <div class="result-value">${data.regionName}</div>
+                                    <div class="result-label">地区</div>
+                                    <div class="result-value">${data.region || '未知'}</div>
                                 </div>
                                 <div class="result-item">
                                     <div class="result-label">城市</div>
                                     <div class="result-value">${data.city}</div>
                                 </div>
                                 <div class="result-item">
-                                    <div class="result-label">ISP供应商</div>
-                                    <div class="result-value">${data.isp}</div>
+                                    <div class="result-label">ISP运营商</div>
+                                    <div class="result-value">${data.isp || '未知'}</div>
                                 </div>
                                 <div class="result-item">
                                     <div class="result-label">时区</div>
-                                    <div class="result-value">${data.timezone}</div>
+                                    <div class="result-value">${data.timezone || '未知'}</div>
                                 </div>
                                 <div class="result-item">
                                     <div class="result-label">坐标</div>
-                                    <div class="result-value">纬度: ${data.lat}, 经度: ${data.lon}</div>
+                                    <div class="result-value">纬度: ${data.latitude}, 经度: ${data.longitude}</div>
+                                </div>
+                                <div class="result-item">
+                                    <div class="result-label">邮编</div>
+                                    <div class="result-value">${data.postal || '未知'}</div>
                                 </div>
                             </div>
                             <div class="map-link">
@@ -242,7 +247,7 @@
                             </div>
                         `;
                     } else {
-                        resultDiv.innerHTML = `<div class="error">❌ 查询失败: ${data.message || '未知错误'}</div>`;
+                        resultDiv.innerHTML = `<div class="error">❌ 查询失败：无法找到该IP信息</div>`;
                     }
                 })
                 .catch(error => {
