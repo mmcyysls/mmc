@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>消消乐游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-item {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 10px;
+            min-height: 350px;
+        }
+        
+        .cell {
+            aspect-ratio: 1;
+            border: none;
+            border-radius: 8px;
+            font-size: 28px;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .cell:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .cell:active {
+            transform: scale(0.95);
+        }
+        
+        .cell.selected {
+            transform: scale(0.9);
+            box-shadow: 0 0 0 3px #ffeb3b;
+        }
+        
+        .cell-1 { background: linear-gradient(135deg, #FF6B6B, #FF8E72); }
+        .cell-2 { background: linear-gradient(135deg, #4ECDC4, #44A08D); }
+        .cell-3 { background: linear-gradient(135deg, #FFE66D, #FFC93C); }
+        .cell-4 { background: linear-gradient(135deg, #95E1D3, #38ADA9); }
+        .cell-5 { background: linear-gradient(135deg, #C7CEEA, #B2A4DE); }
+        .cell-6 { background: linear-gradient(135deg, #FF9A76, #FF6348); }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 12px 30px;
+            font-size: 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .btn-restart {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-restart:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-undo {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-undo:hover:not(:disabled) {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+        }
+        
+        .btn-undo:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .message {
+            text-align: center;
+            font-size: 14px;
+            color: #999;
+            margin-top: 15px;
+            min-height: 20px;
+        }
+        
+        .message.info {
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .message.success {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        
+        .game-over-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .game-over-modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 400px;
+        }
+        
+        .modal-content h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 28px;
+        }
+        
+        .modal-content p {
+            color: #666;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .final-score {
+            font-size: 36px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 20px 0;
+        }
+        
+        .modal-button {
+            background: #667eea;
+            color: white;
+            padding: 12px 40px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        
+        .modal-button:hover {
+            background: #5568d3;
+        }
+        
+        @media (max-width: 500px) {
+            .game-container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .game-board {
+                grid-template-columns: repeat(5, 1fr);
+                gap: 6px;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🎮 消消乐</h1>
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-label">分数</div>
+                    <div class="stat-value" id="score">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">剩余方块</div>
+                    <div class="stat-value" id="remaining">30</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-board" id="gameBoard"></div>
+        
+        <div class="controls">
+            <button class="btn-undo" id="undoBtn" onclick="undo()">↶ 撤销</button>
+            <button class="btn-restart" onclick="restartGame()">🔄 重新开始</button>
+        </div>
+        
+        <div class="message" id="message"></div>
+    </div>
+    
+    <div class="game-over-modal" id="gameOverModal">
+        <div class="modal-content">
+            <h2>🎉 游戏结束！</h2>
+            <p>恭喜你消除了所有方块！</p>
+            <div class="final-score" id="finalScore">0</div>
+            <button class="modal-button" onclick="restartGame()">再来一局</button>
+        </div>
+    </div>
+
+    <script>
+        const ROWS = 5;
+        const COLS = 6;
+        const TYPES = 6;
+        
+        let board = [];
+        let score = 0;
+        let history = [];
+        let gameOver = false;
+        
+        // 初始化游戏
+        function initGame() {
+            board = [];
+            score = 0;
+            history = [];
+            gameOver = false;
+            
+            // 生成随机方块
+            for (let i = 0; i < ROWS * COLS; i++) {
+                board.push(Math.floor(Math.random() * TYPES) + 1);
+            }
+            
+            renderBoard();
+            updateStats();
+            clearMessage();
+            document.getElementById('gameOverModal').classList.remove('show');
+        }
+        
+        // 渲染游戏板
+        function renderBoard() {
+            const gameBoard = document.getElementById('gameBoard');
+            gameBoard.innerHTML = '';
+            
+            board.forEach((type, index) => {
+                if (type === 0) return;
+                
+                const cell = document.createElement('button');
+                cell.className = `cell cell-${type}`;
+                cell.textContent = type;
+                cell.onclick = () => selectCell(index);
+                cell.id = `cell-${index}`;
+                
+                gameBoard.appendChild(cell);
+            });
+        }
+        
+        // 选择方块
+        let selectedIndex = -1;
+        
+        function selectCell(index) {
+            if (gameOver || board[index] === 0) return;
+            
+            // 如果点击同一个方块，取消选择
+            if (selectedIndex === index) {
+                selectedIndex = -1;
+                renderBoard();
+                return;
+            }
+            
+            // 如果这是第一个选择
+            if (selectedIndex === -1) {
+                selectedIndex = index;
+                highlightCell(index);
+                return;
+            }
+            
+            // 检查两个方块是否可以消除
+            if (canMatch(selectedIndex, index)) {
+                saveHistory();
+                matchCells(selectedIndex, index);
+                selectedIndex = -1;
+                checkGameOver();
+            } else {
+                showMessage('这两个方块不能配对！');
+                selectedIndex = index;
+                renderBoard();
+                highlightCell(index);
+            }
+        }
+        
+        // 高亮方块
+        function highlightCell(index) {
+            const cell = document.getElementById(`cell-${index}`);
+            if (cell) {
+                cell.classList.add('selected');
+            }
+        }
+        
+        // 检查两个方块是否可以配对
+        function canMatch(index1, index2) {
+            const type1 = board[index1];
+            const type2 = board[index2];
+            
+            // 方块类型必须相同
+            if (type1 !== type2) return false;
+            
+            // 检查是否相邻或通过空格相邻
+            return isConnected(index1, index2);
+        }
+        
+        // 检查两个位置是否可以连接（简化版：只检查相邻或同行/列且中间都是空的）
+        function isConnected(index1, index2) {
+            const row1 = Math.floor(index1 / COLS);
+            const col1 = index1 % COLS;
+            const row2 = Math.floor(index2 / COLS);
+            const col2 = index2 % COLS;
+            
+            // 相邻检查
+            if (Math.abs(row1 - row2) + Math.abs(col1 - col2) === 1) {
+                return true;
+            }
+            
+            // 同行检查
+            if (row1 === row2) {
+                const start = Math.min(col1, col2) + 1;
+                const end = Math.max(col1, col2);
+                for (let col = start; col < end; col++) {
+                    if (board[row1 * COLS + col] !== 0) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            
+            // 同列检查
+            if (col1 === col2) {
+                const start = Math.min(row1, row2) + 1;
+                const end = Math.max(row1, row2);
+                for (let row = start; row < end; row++) {
+                    if (board[row * COLS + col1] !== 0) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            
+            return false;
+        }
+        
+        // 消除方块
+        function matchCells(index1, index2) {
+            board[index1] = 0;
+            board[index2] = 0;
+            
+            // 计算分数
+            const baseScore = 10;
+            score += baseScore * 2;
+            
+            // 下降方块
+            dropBlocks();
+            
+            // 延迟渲染以显示动画效果
+            setTimeout(() => {
+                // 检查并消除连续的方块
+                let matched = true;
+                while (matched) {
+                    matched = false;
+                    const chains = findChains();
+                    if (chains.length > 0) {
+                        matched = true;
+                        chains.forEach(indices => {
+                            indices.forEach(index => {
+                                board[index] = 0;
+                            });
+                            score += baseScore * indices.length;
+                        });
+                        dropBlocks();
+                    }
+                }
+                
+                renderBoard();
+                updateStats();
+                
+                if (chains.length > 0) {
+                    showMessage('✨ 连锁消除！', 'success');
+                } else {
+                    clearMessage();
+                }
+            }, 300);
+        }
+        
+        // 查找连续的方块
+        function findChains() {
+            const matched = new Set();
+            
+            // 横向查找
+            for (let row = 0; row < ROWS; row++) {
+                for (let col = 0; col < COLS; col++) {
+                    const index = row * COLS + col;
+                    if (board[index] === 0) continue;
+                    
+                    const type = board[index];
+                    let count = 1;
+                    let startCol = col;
+                    
+                    while (col + count < COLS && board[row * COLS + col + count] === type) {
+                        count++;
+                    }
+                    
+                    if (count >= 3) {
+                        for (let i = 0; i < count; i++) {
+                            matched.add(row * COLS + col + i);
+                        }
+                    }
+                }
+            }
+            
+            // 纵向查找
+            for (let col = 0; col < COLS; col++) {
+                for (let row = 0; row < ROWS; row++) {
+                    const index = row * COLS + col;
+                    if (board[index] === 0) continue;
+                    
+                    const type = board[index];
+                    let count = 1;
+                    
+                    while (row + count < ROWS && board[(row + count) * COLS + col] === type) {
+                        count++;
+                    }
+                    
+                    if (count >= 3) {
+                        for (let i = 0; i < count; i++) {
+                            matched.add((row + i) * COLS + col);
+                        }
+                    }
+                }
+            }
+            
+            if (matched.size === 0) return [];
+            
+            return [Array.from(matched)];
+        }
+        
+        // 方块下降
+        function dropBlocks() {
+            for (let col = 0; col < COLS; col++) {
+                let writePos = (ROWS - 1) * COLS + col;
+                
+                for (let row = ROWS - 1; row >= 0; row--) {
+                    const readPos = row * COLS + col;
+                    
+                    if (board[readPos] !== 0) {
+                        board[writePos] = board[readPos];
+                        if (writePos !== readPos) {
+                            board[readPos] = 0;
+                        }
+                        writePos -= COLS;
+                    }
+                }
+                
+                // 补充新方块
+                for (let i = writePos; i >= 0; i -= COLS) {
+                    board[i] = Math.floor(Math.random() * TYPES) + 1;
+                }
+            }
+        }
+        
+        // 更新统计信息
+        function updateStats() {
+            document.getElementById('score').textContent = score;
+            
+            const remaining = board.filter(cell => cell !== 0).length;
+            document.getElementById('remaining').textContent = remaining;
+        }
+        
+        // 显示消息
+        function showMessage(msg, type = '') {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = msg;
+            messageEl.className = `message ${type}`;
+        }
+        
+        // 清空消息
+        function clearMessage() {
+            document.getElementById('message').textContent = '';
+            document.getElementById('message').className = 'message';
+        }
+        
+        // 检查游戏是否结束
+        function checkGameOver() {
+            const remaining = board.filter(cell => cell !== 0).length;
+            
+            if (remaining === 0) {
+                gameOver = true;
+                document.getElementById('finalScore').textContent = score;
+                document.getElementById('gameOverModal').classList.add('show');
+                showMessage('🎉 恭喜！所有方块已消除！', 'success');
+            }
+        }
+        
+        // 保存历史
+        function saveHistory() {
+            history.push(JSON.parse(JSON.stringify(board)));
+            document.getElementById('undoBtn').disabled = false;
+        }
+        
+        // 撤销
+        function undo() {
+            if (history.length === 0) return;
+            
+            board = history.pop();
+            selectedIndex = -1;
+            renderBoard();
+            updateStats();
+            clearMessage();
+            
+            if (history.length === 0) {
+                document.getElementById('undoBtn').disabled = true;
+            }
+        }
+        
+        // 重新开始游戏
+        function restartGame() {
+            initGame();
+            document.getElementById('undoBtn').disabled = true;
+        }
+        
+        // 游戏启动
+        initGame();
+        document.getElementById('undoBtn').disabled = true;
+    </script>
+</body>
+</html>
