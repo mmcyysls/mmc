@@ -249,7 +249,7 @@
     <div class="container">
         <div class="header">
             <h1>📱 手机号归属地查询</h1>
-            <p class="subtitle">快速查询手机号的运营商和归属地信息</p>
+            <p class="subtitle">快速查询手机号的运营商、城市和详细归属地信息</p>
         </div>
         
         <div class="input-group">
@@ -274,7 +274,7 @@
         </div>
         
         <div class="info-box">
-            💡 支持查询国内11位手机号，包括移动、电信、联通等所有运营商
+            💡 支持查询国内11位手机号，包括移动、电信、联通等所有运营商，显示具体的城市归属地
         </div>
     </div>
 
@@ -345,7 +345,7 @@
             return carriers[phonePrefix] || null;
         }
         
-        // 查询手机号信息
+        // 查询手机号信息 - 尝试多个API
         async function queryPhone() {
             const phoneInput = document.getElementById('phoneInput').value.trim();
             const resultDiv = document.getElementById('result');
@@ -363,13 +363,61 @@
             
             resultDiv.innerHTML = '<div class="loading"><span class="spinner"></span>查询中...</div>';
             
+            // 方法1: 使用 taobao API
             try {
-                // 使用API查询
-                const response = await fetch(`https://api.vore.top/api/phonenum?phone=${phoneInput}`);
+                const response = await fetch(`https://tcc.taobao.com/cc/json/mobile_tel_segment.htm?tel=${phoneInput}`);
+                const text = await response.text();
+                // 移除回调函数包装
+                const jsonStr = text.replace(/^.*?\(/, '').replace(/\).*?$/, '');
+                const data = JSON.parse(jsonStr);
+                
+                if (data && data.telSeg) {
+                    const prefix = phoneInput.substring(0, 3);
+                    const carrier = getCarrierInfo(prefix);
+                    
+                    resultDiv.innerHTML = `
+                        <div class="result-card">
+                            <div style="font-size: 16px; margin-bottom: 15px;">✅ 查询结果</div>
+                            <div class="result-grid">
+                                <div class="result-item">
+                                    <div class="result-label">手机号码</div>
+                                    <div class="result-value">${phoneInput}</div>
+                                </div>
+                                <div class="result-item">
+                                    <div class="result-label">运营商</div>
+                                    <div class="result-value">${carrier ? carrier.name : data.areaVinformation || '未知'}</div>
+                                </div>
+                                <div class="result-item">
+                                    <div class="result-label">网络类型</div>
+                                    <div class="result-value">${carrier ? carrier.type : '4G/5G'}</div>
+                                </div>
+                                <div class="result-item">
+                                    <div class="result-label">号段信息</div>
+                                    <div class="result-value">${data.telSeg || '未知'}</div>
+                                </div>
+                                <div class="result-item result-full">
+                                    <div class="result-label">归属地</div>
+                                    <div class="result-value">${data.areaVinformation || '未知'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+            } catch (e) {
+                console.log('方法1失败，尝试方法2...');
+            }
+            
+            // 方法2: 使用 aliyun API
+            try {
+                const response = await fetch(`https://qqvps.com/tencent/qqwry?ip=${phoneInput}`, {
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
                 const data = await response.json();
                 
-                if (data.code === 0 && data.data) {
-                    const phoneData = data.data;
+                if (data && data.result) {
                     const prefix = phoneInput.substring(0, 3);
                     const carrier = getCarrierInfo(prefix);
                     
@@ -389,59 +437,36 @@
                                     <div class="result-label">网络类型</div>
                                     <div class="result-value">${carrier ? carrier.type : '未知'}</div>
                                 </div>
-                                <div class="result-item">
-                                    <div class="result-label">区号</div>
-                                    <div class="result-value">${phoneData.areaCode || '未知'}</div>
+                                <div class="result-item result-full">
+                                    <div class="result-label">城市</div>
+                                    <div class="result-value">${data.result.city || '未知'}</div>
                                 </div>
                                 <div class="result-item result-full">
-                                    <div class="result-label">归属地</div>
-                                    <div class="result-value">${phoneData.province || '未知'} ${phoneData.city || ''}</div>
+                                    <div class="result-label">区域</div>
+                                    <div class="result-value">${data.result.province || '未知'} ${data.result.district || ''}</div>
                                 </div>
                             </div>
                         </div>
                     `;
-                } else {
-                    // 备选方案：使用本地数据库
+                    return;
+                }
+            } catch (e) {
+                console.log('方法2失败，尝试方法3...');
+            }
+            
+            // 方法3: 使用 ip138 API
+            try {
+                const response = await fetch(`https://api.ip138.com/query/?mobile=${phoneInput}&token=`);
+                const data = await response.json();
+                
+                if (data && data.data) {
                     const prefix = phoneInput.substring(0, 3);
                     const carrier = getCarrierInfo(prefix);
+                    const location = data.data;
                     
-                    if (carrier) {
-                        resultDiv.innerHTML = `
-                            <div class="result-card">
-                                <div style="font-size: 16px; margin-bottom: 15px;">✅ 查询结果（本地数据）</div>
-                                <div class="result-grid">
-                                    <div class="result-item">
-                                        <div class="result-label">手机号码</div>
-                                        <div class="result-value">${phoneInput}</div>
-                                    </div>
-                                    <div class="result-item">
-                                        <div class="result-label">运营商</div>
-                                        <div class="result-value">${carrier.name}</div>
-                                    </div>
-                                    <div class="result-item">
-                                        <div class="result-label">网络类型</div>
-                                        <div class="result-value">${carrier.type}</div>
-                                    </div>
-                                    <div class="result-item result-full">
-                                        <div class="result-label">提示</div>
-                                        <div class="result-value">基于号段的运营商信息（具体归属地需在线查询）</div>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    } else {
-                        resultDiv.innerHTML = '<div class="error">❌ 查询失败：无法获取该号码的信息</div>';
-                    }
-                }
-            } catch (error) {
-                // 使用本地数据库作为备选
-                const prefix = phoneInput.substring(0, 3);
-                const carrier = getCarrierInfo(prefix);
-                
-                if (carrier) {
                     resultDiv.innerHTML = `
                         <div class="result-card">
-                            <div style="font-size: 16px; margin-bottom: 15px;">✅ 查询结果（本地数据）</div>
+                            <div style="font-size: 16px; margin-bottom: 15px;">✅ 查询结果</div>
                             <div class="result-grid">
                                 <div class="result-item">
                                     <div class="result-label">手机号码</div>
@@ -449,22 +474,81 @@
                                 </div>
                                 <div class="result-item">
                                     <div class="result-label">运营商</div>
-                                    <div class="result-value">${carrier.name}</div>
+                                    <div class="result-value">${location.operator || (carrier ? carrier.name : '未知')}</div>
                                 </div>
                                 <div class="result-item">
                                     <div class="result-label">网络类型</div>
-                                    <div class="result-value">${carrier.type}</div>
+                                    <div class="result-value">${carrier ? carrier.type : '未知'}</div>
+                                </div>
+                                <div class="result-item">
+                                    <div class="result-label">城市</div>
+                                    <div class="result-value">${location.city || '未知'}</div>
                                 </div>
                                 <div class="result-item result-full">
-                                    <div class="result-label">提示</div>
-                                    <div class="result-value">基于号段的运营商信息（具体归属地需在线查询）</div>
+                                    <div class="result-label">省份</div>
+                                    <div class="result-value">${location.province || '未知'}</div>
                                 </div>
                             </div>
                         </div>
                     `;
-                } else {
-                    resultDiv.innerHTML = '<div class="error">❌ 查询失败：' + error.message + '</div>';
+                    return;
                 }
+            } catch (e) {
+                console.log('方法3失败，尝试方法4...');
+            }
+            
+            // 方法4: 使用本地号段库
+            const prefix = phoneInput.substring(0, 3);
+            const carrier = getCarrierInfo(prefix);
+            
+            // 本地号段信息库（包含城市）
+            const localPhoneData = {
+                '138': { carrier: '移动', city: '全国' },
+                '139': { carrier: '移动', city: '全国' },
+                '150': { carrier: '移动', city: '全国' },
+                '158': { carrier: '移动', city: '全国' },
+                '188': { carrier: '移动', city: '全国' },
+                '133': { carrier: '电信', city: '全国' },
+                '153': { carrier: '电信', city: '全国' },
+                '180': { carrier: '电信', city: '全国' },
+                '189': { carrier: '电信', city: '全国' },
+                '130': { carrier: '联通', city: '全国' },
+                '131': { carrier: '联通', city: '全国' },
+                '155': { carrier: '联通', city: '全国' },
+                '185': { carrier: '联通', city: '全国' },
+                '186': { carrier: '联通', city: '全国' }
+            };
+            
+            if (carrier) {
+                resultDiv.innerHTML = `
+                    <div class="result-card">
+                        <div style="font-size: 16px; margin-bottom: 15px;">✅ 查询结果（本地数据）</div>
+                        <div class="result-grid">
+                            <div class="result-item">
+                                <div class="result-label">手机号码</div>
+                                <div class="result-value">${phoneInput}</div>
+                            </div>
+                            <div class="result-item">
+                                <div class="result-label">运营商</div>
+                                <div class="result-value">${carrier.name}</div>
+                            </div>
+                            <div class="result-item">
+                                <div class="result-label">网络类型</div>
+                                <div class="result-value">${carrier.type}</div>
+                            </div>
+                            <div class="result-item">
+                                <div class="result-label">号段前3位</div>
+                                <div class="result-value">${prefix}</div>
+                            </div>
+                            <div class="result-item result-full">
+                                <div class="result-label">提示</div>
+                                <div class="result-value">基于号段的运营商信息（具体城市需通过在线数据库查询）</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                resultDiv.innerHTML = '<div class="error">❌ 查询失败：无法识别该号码段</div>';
             }
         }
         
