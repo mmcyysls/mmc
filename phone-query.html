@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手机号归属地查询</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #999;
+            font-size: 14px;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        
+        input {
+            flex: 1;
+            padding: 14px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        input::placeholder {
+            color: #ccc;
+        }
+        
+        button {
+            padding: 14px 35px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .result-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-top: 25px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+        
+        .result-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        
+        .result-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .result-label {
+            font-size: 12px;
+            opacity: 0.8;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        
+        .result-value {
+            font-size: 18px;
+            font-weight: bold;
+            word-break: break-all;
+        }
+        
+        .result-full {
+            grid-column: 1 / -1;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #667eea;
+            font-size: 16px;
+            padding: 20px;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            color: #e74c3c;
+            background: #fadbd8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #e74c3c;
+            font-size: 14px;
+        }
+        
+        .success {
+            color: #27ae60;
+            background: #d5f4e6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #27ae60;
+            font-size: 14px;
+        }
+        
+        .examples {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .examples h3 {
+            color: #333;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        
+        .example-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 8px;
+        }
+        
+        .example-btn {
+            padding: 8px 12px;
+            background: #f0f0f0;
+            color: #333;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .example-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .info-box {
+            background: #f0f7ff;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            font-size: 12px;
+            color: #333;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 500px) {
+            .container {
+                padding: 25px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .result-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            .input-group {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 手机号归属地查询</h1>
+            <p class="subtitle">快速查询手机号的运营商和归属地信息</p>
+        </div>
+        
+        <div class="input-group">
+            <input 
+                type="text" 
+                id="phoneInput" 
+                placeholder="输入手机号码（11位数字）"
+                maxlength="11"
+            >
+            <button onclick="queryPhone()">查询</button>
+        </div>
+        
+        <div id="result"></div>
+        
+        <div class="examples">
+            <h3>📋 快速示例：</h3>
+            <div class="example-list">
+                <button class="example-btn" onclick="queryWithNumber('13800138000')">移动示例</button>
+                <button class="example-btn" onclick="queryWithNumber('15500155000')">电信示例</button>
+                <button class="example-btn" onclick="queryWithNumber('17600176000')">联通示例</button>
+            </div>
+        </div>
+        
+        <div class="info-box">
+            💡 支持查询国内11位手机号，包括移动、电信、联通等所有运营商
+        </div>
+    </div>
+
+    <script>
+        // 手机号验证
+        function isValidPhone(phone) {
+            const phoneRegex = /^1[3-9]\d{9}$/;
+            return phoneRegex.test(phone);
+        }
+        
+        // 获取运营商信息
+        function getCarrierInfo(phonePrefix) {
+            const carriers = {
+                // 移动
+                '134': { name: '移动', type: '4G' },
+                '135': { name: '移动', type: '4G' },
+                '136': { name: '移动', type: '4G' },
+                '137': { name: '移动', type: '4G' },
+                '138': { name: '移动', type: '4G' },
+                '139': { name: '移动', type: '4G' },
+                '147': { name: '移动', type: '4G' },
+                '150': { name: '移动', type: '4G' },
+                '151': { name: '移动', type: '4G' },
+                '152': { name: '移动', type: '4G' },
+                '157': { name: '移动', type: '5G' },
+                '158': { name: '移动', type: '4G' },
+                '159': { name: '移动', type: '4G' },
+                '178': { name: '移动', type: '4G' },
+                '182': { name: '移动', type: '4G' },
+                '183': { name: '移动', type: '4G' },
+                '184': { name: '移动', type: '4G' },
+                '187': { name: '移动', type: '4G' },
+                '188': { name: '移动', type: '4G' },
+                '198': { name: '移动', type: '5G' },
+                
+                // 电信
+                '133': { name: '电信', type: '4G' },
+                '149': { name: '电信', type: '4G' },
+                '153': { name: '电信', type: '4G' },
+                '162': { name: '电信', type: '4G' },
+                '173': { name: '电信', type: '4G' },
+                '177': { name: '电信', type: '4G' },
+                '180': { name: '电信', type: '4G' },
+                '181': { name: '电信', type: '4G' },
+                '189': { name: '电信', type: '4G' },
+                '190': { name: '电信', type: '4G' },
+                '191': { name: '电信', type: '5G' },
+                '193': { name: '电信', type: '5G' },
+                '199': { name: '电信', type: '5G' },
+                
+                // 联通
+                '130': { name: '联通', type: '4G' },
+                '131': { name: '联通', type: '4G' },
+                '132': { name: '联通', type: '4G' },
+                '145': { name: '联通', type: '4G' },
+                '155': { name: '联通', type: '4G' },
+                '156': { name: '联通', type: '4G' },
+                '166': { name: '联通', type: '4G' },
+                '171': { name: '联通', type: '4G' },
+                '175': { name: '联通', type: '4G' },
+                '176': { name: '联通', type: '4G' },
+                '185': { name: '联通', type: '4G' },
+                '186': { name: '联通', type: '4G' },
+                '192': { name: '联通', type: '5G' },
+                '196': { name: '联通', type: '5G' }
+            };
+            
+            return carriers[phonePrefix] || null;
+        }
+        
+        // 查询手机号信息
+        async function queryPhone() {
+            const phoneInput = document.getElementById('phoneInput').value.trim();
+            const resultDiv = document.getElementById('result');
+            
+            // 验证输入
+            if (!phoneInput) {
+                resultDiv.innerHTML = '<div class="error">❌ 请输入手机号码</div>';
+                return;
+            }
+            
+            if (!isValidPhone(phoneInput)) {
+                resultDiv.innerHTML = '<div class="error">❌ 请输入有效的手机号码（11位数字，以1开头）</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="loading"><span class="spinner"></span>查询中...</div>';
+            
+            try {
+                // 使用API查询
+                const response = await fetch(`https://api.vore.top/api/phonenum?phone=${phoneInput}`);
+                const data = await response.json();
+                
+                if (data.code === 0 && data.data) {
+                    const phoneData = data.data;
+                    const prefix = phoneInput.substring(0, 3);
+                    const carrier = getCarrierInfo(prefix);
+                    
+                    resultDiv.innerHTML = `
+                        <div class="result-card">
+                            <div style="font-size: 16px; margin-bottom: 15px;">✅ 查询结果</div>
+                            <div class="result-grid">
+                                <div class="result-item">
+                                    <div class="result-label">手机号码</div>
+                                    <div class="result-value">${phoneInput}</div>
+                                </div>
+                                <div class="result-item">
+                                    <div class="result-label">运营商</div>
+                                    <div class="result-value">${carrier ? carrier.name : '未知'}</div>
+                                </div>
+                                <div class="result-item">
+                                    <div class="result-label">网络类型</div>
+                                    <div class="result-value">${carrier ? carrier.type : '未知'}</div>
+                                </div>
+                                <div class="result-item">
+                                    <div class="result-label">区号</div>
+                                    <div class="result-value">${phoneData.areaCode || '未知'}</div>
+                                </div>
+                                <div class="result-item result-full">
+                                    <div class="result-label">归属地</div>
+                                    <div class="result-value">${phoneData.province || '未知'} ${phoneData.city || ''}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // 备选方案：使用本地数据库
+                    const prefix = phoneInput.substring(0, 3);
+                    const carrier = getCarrierInfo(prefix);
+                    
+                    if (carrier) {
+                        resultDiv.innerHTML = `
+                            <div class="result-card">
+                                <div style="font-size: 16px; margin-bottom: 15px;">✅ 查询结果（本地数据）</div>
+                                <div class="result-grid">
+                                    <div class="result-item">
+                                        <div class="result-label">手机号码</div>
+                                        <div class="result-value">${phoneInput}</div>
+                                    </div>
+                                    <div class="result-item">
+                                        <div class="result-label">运营商</div>
+                                        <div class="result-value">${carrier.name}</div>
+                                    </div>
+                                    <div class="result-item">
+                                        <div class="result-label">网络类型</div>
+                                        <div class="result-value">${carrier.type}</div>
+                                    </div>
+                                    <div class="result-item result-full">
+                                        <div class="result-label">提示</div>
+                                        <div class="result-value">基于号段的运营商信息（具体归属地需在线查询）</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        resultDiv.innerHTML = '<div class="error">❌ 查询失败：无法获取该号码的信息</div>';
+                    }
+                }
+            } catch (error) {
+                // 使用本地数据库作为备选
+                const prefix = phoneInput.substring(0, 3);
+                const carrier = getCarrierInfo(prefix);
+                
+                if (carrier) {
+                    resultDiv.innerHTML = `
+                        <div class="result-card">
+                            <div style="font-size: 16px; margin-bottom: 15px;">✅ 查询结果（本地数据）</div>
+                            <div class="result-grid">
+                                <div class="result-item">
+                                    <div class="result-label">手机号码</div>
+                                    <div class="result-value">${phoneInput}</div>
+                                </div>
+                                <div class="result-item">
+                                    <div class="result-label">运营商</div>
+                                    <div class="result-value">${carrier.name}</div>
+                                </div>
+                                <div class="result-item">
+                                    <div class="result-label">网络类型</div>
+                                    <div class="result-value">${carrier.type}</div>
+                                </div>
+                                <div class="result-item result-full">
+                                    <div class="result-label">提示</div>
+                                    <div class="result-value">基于号段的运营商信息（具体归属地需在线查询）</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = '<div class="error">❌ 查询失败：' + error.message + '</div>';
+                }
+            }
+        }
+        
+        // 快速查询函数
+        function queryWithNumber(phone) {
+            document.getElementById('phoneInput').value = phone;
+            queryPhone();
+        }
+        
+        // 回车查询
+        document.getElementById('phoneInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                queryPhone();
+            }
+        });
+        
+        // 自动格式化输入（只允许数字）
+        document.getElementById('phoneInput').addEventListener('input', function(e) {
+            e.target.value = e.target.value.replace(/[^\d]/g, '');
+        });
+    </script>
+</body>
+</html>
